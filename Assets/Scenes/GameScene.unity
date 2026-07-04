@@ -647,7 +647,7 @@ MonoBehaviour:
   bulletPrefab: {fileID: 4668659829980861665, guid: 9b525c59475eda748a492d9f668ec1a5, type: 3}
   shotsound: {fileID: 8300000, guid: c7fdf37fb37c79748906b4223883fd94, type: 3}
   dodgesound: {fileID: 8300000, guid: 28ee041fa3252ae45ac399d7ba10fec3, type: 3}
-  dodgeDistance: 10
+  dodgeDistance: 6
   dodgeDuration: 1.25
 --- !u!114 &568615430
 MonoBehaviour:
