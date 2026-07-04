@@ -210,7 +210,7 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Main Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
@@ -352,7 +352,7 @@ GameObject:
   - component: {fileID: 568615426}
   - component: {fileID: 568615430}
   - component: {fileID: 568615428}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -646,7 +646,9 @@ MonoBehaviour:
   speed: 8
   bulletPrefab: {fileID: 4668659829980861665, guid: 9b525c59475eda748a492d9f668ec1a5, type: 3}
   shotsound: {fileID: 8300000, guid: c7fdf37fb37c79748906b4223883fd94, type: 3}
-  dodgesound: {fileID: 8300000, guid: 14daccdb7670ac74ba6fde27de2185e3, type: 3}
+  dodgesound: {fileID: 8300000, guid: 28ee041fa3252ae45ac399d7ba10fec3, type: 3}
+  dodgeDistance: 10
+  dodgeDuration: 1.25
 --- !u!114 &568615430
 MonoBehaviour:
   m_ObjectHideFlags: 0

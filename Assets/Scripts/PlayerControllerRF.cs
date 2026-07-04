@@ -22,6 +22,15 @@ public class PlayerControllerRF : MonoBehaviour
     // 사격 처리용
     bool isShooting;
 
+    // 회피 처리용
+    [Header("Dodge")]
+    public float dodgeDistance = 6f;
+    public float dodgeDuration = 1.25f; // 회피 애니메이션과 길이 맞추기
+    bool isDodging;
+    Vector3 dodgeDirection;
+    int playerLayer;
+    int enemyLayer;
+
     // 캐싱
     SpriteRenderer spriteRenderer; // 불러와야할 컴포넌트를 미리 필드로 선언
     Animator animator;
@@ -41,6 +50,8 @@ public class PlayerControllerRF : MonoBehaviour
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         character = GetComponent<CharacterRF>();
+        playerLayer = LayerMask.NameToLayer("Player"); // LayerMask.NameToLayer : 레이어는 내부적으로 0~31의 숫자로 관리되는데 이름으로 그 숫자를 찾아주는 함수
+        enemyLayer = LayerMask.NameToLayer("Enemy");
     }
 
     // OnEnable 메소드: 컴포넌트 활성화될 때마다 호출
@@ -49,6 +60,7 @@ public class PlayerControllerRF : MonoBehaviour
     {
         controls.Player.Enable();
         controls.Player.Fire.performed += OnFirePerformed;
+        controls.Player.Dodge.performed += OnDodgePerformed;
         /*
          * 각 액션에는 몇 개의 이벤트가 자동으로 생성됨
          * 그 중 performed 이벤트는 지정한 키가 눌렸다고 인식될 때 실행되서 메소드를 구독시킴
@@ -60,6 +72,7 @@ public class PlayerControllerRF : MonoBehaviour
     private void OnDisable()
     {
         controls.Player.Fire.performed -= OnFirePerformed; // 이벤트에 구독된 메소드도 취소해야지 GC가 메모리를 정리할 수 있음
+        controls.Player.Dodge.performed -= OnDodgePerformed;
         controls.Player.Disable(); // 오브젝트가 꺼지면 입력을 받지 않아야 함
     }
 
@@ -67,8 +80,43 @@ public class PlayerControllerRF : MonoBehaviour
     void OnFirePerformed(InputAction.CallbackContext context)
     // UnityEngine.InputSystem.InputAction.CallbackContext : performed 이벤트가 넘겨주는 관련 정보를 담은 값. 이벤트를 발생시킨 입력 및 그 값 등의 정보를 담고 있음
     {
-        if (isShooting) return; // 이미 사격 중이면 새 입력 무시
+        if (isShooting || isDodging) return; // 회피 및 사격 중엔 추가 사격 막음
         Shoot();
+    }
+
+    // 회피 처리
+    void OnDodgePerformed(InputAction.CallbackContext context)
+    {
+        if (isDodging || isShooting) return; // 회피 및 사격 중엔 추가 회피 막음
+
+        // Player 이동 입력 파악
+        Vector2 input = controls.Player.Move.ReadValue<Vector2>();
+        Vector3 direction = new Vector3(input.x, input.y, 0).normalized;
+
+        if (direction == Vector3.zero)
+        {
+            direction = spriteRenderer.flipX ? Vector3.left : Vector3.right; // 이동 입력 없을 때는 Player 오브젝트가 보고 있는 방향으로
+        }
+
+        StartCoroutine(DodgeRoutine(direction));
+    }
+
+    // 회피 로직 구현 코루틴
+    IEnumerator DodgeRoutine(Vector3 direction)
+    {
+        audioSource.PlayOneShot(dodgesound);
+
+        isDodging = true;
+        dodgeDirection = direction;
+
+        Physics2D.IgnoreLayerCollision(playerLayer, enemyLayer, true); // Player-Enemy만 선택적으로 무시
+
+        animator.SetTrigger("Dodge");
+
+        yield return new WaitForSeconds(dodgeDuration);
+
+        Physics2D.IgnoreLayerCollision(playerLayer, enemyLayer, false);
+        isDodging = false;
     }
 
     void Update()
@@ -80,24 +128,25 @@ public class PlayerControllerRF : MonoBehaviour
          */
         Vector3 inputMove = new Vector3(input.x, input.y, 0).normalized;
 
-        move = isShooting ? Vector3.zero : inputMove; // 사격 중이면 이동 입력을 무시
+        /* 
+         if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) 
+         {
+             move += new Vector3(-1, 0, 0); 
+         }
+         ...
 
-       /* 
-        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) 
+         구버전 Input Manager를 사용하는 방식
+         매 프레임 하드코딩된 키가 눌려 있는지를 폴링하는 방식
+         키 재설정 기능 구현 및 여러 입력 디바이스 대응 어려움
+        */
+
+        if (isDodging || isShooting)
         {
-            move += new Vector3(-1, 0, 0); 
+            move = Vector3.zero; // 회피 및 사격 중엔 일반 이동 입력 무시
         }
-        ...
-
-        구버전 Input Manager를 사용하는 방식
-        매 프레임 하드코딩된 키가 눌려 있는지를 폴링하는 방식
-        키 재설정 기능 구현 및 여러 입력 디바이스 대응 어려움
-       */
-
-        move = move.normalized; // 방향 벡터 정규화
-
-        if (!isShooting) // 반전도 사격 중엔 건너뜀
+        else
         {
+            move = inputMove;
             if (move.x < 0) spriteRenderer.flipX = true;
             if (move.x > 0) spriteRenderer.flipX = false;
         }
@@ -139,7 +188,16 @@ public class PlayerControllerRF : MonoBehaviour
     // 이동 처리
     private void FixedUpdate() 
     {
-        transform.Translate(move * speed * Time.fixedDeltaTime);
+        if (isDodging)
+        {
+            // 회피 시의 움직임 처리
+            transform.Translate(dodgeDirection * (dodgeDistance / dodgeDuration) * Time.fixedDeltaTime);
+        }
+        else
+        {
+            // 일반 상황 시의 움직임 처리
+            transform.Translate(move * speed * Time.fixedDeltaTime);
+        }
     }
 
     // 사격 처리
