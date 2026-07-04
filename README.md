@@ -51,6 +51,7 @@ Assets/
 1. 이 저장소를 클론합니다.
 2. Unity Hub에서 Unity 6.3 LTS 버전으로 프로젝트를 엽니다.
 3. `Assets/Scenes/MainMenuScene`을 열고 Play 버튼을 눌러 실행합니다.
+
 혹은
 https://sywoo0109.itch.io/top-down-shooter-toy-project 에서 플레이 가능합니다.
 
